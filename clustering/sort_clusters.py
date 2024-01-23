@@ -7,7 +7,6 @@
 import torch
 import time
 import numpy as np
-import logging
 from tqdm import tqdm
 import pandas as pd
 import os
@@ -24,7 +23,6 @@ import pprint
 from tqdm import tqdm
 import argparse
 from typing import List, Tuple, Union
-from utils import get_logger
 
 
 def assign_and_sort_clusters(
@@ -36,7 +34,6 @@ def assign_and_sort_clusters(
     save_folder: str = "",
     sorted_clusters_file_loc: str = "",
     cluster_ids=range(5000),
-    logger: logging.Logger = None,
 ) -> pd.DataFrame:
     """
     Assigns data points to clusters and sorts each cluster items based on distance to its centroid.
@@ -49,7 +46,6 @@ def assign_and_sort_clusters(
         kmeans_with_cos_dist (bool): Whether to use cosine distance for K-means clustering. Defaults to False.
         save_folder (str): The location of the K-means centroids file. Defaults to "".
         sorted_clusters_file_loc (str): The location to save the sorted clusters file. Defaults to "".
-        logger (logging.Logger): A logger object to log messages. Defaults to None.
         cluster_ids (list): The range of cluster IDs to sort. Defaults to range(5000).
 
     Returns:
@@ -68,7 +64,7 @@ def assign_and_sort_clusters(
     spherical = kmeans_with_cos_dist
 
     # Step 3: Sort each class/cluster
-    logger.info("Ranking...")
+    print("Ranking...")
     kmeans_centroids_file_loc = pathlib.Path(save_folder, "kmeans_centroids.npy")
     dist_to_cent_file_loc = pathlib.Path(save_folder, "dist_to_cent.npy")
     nearest_cent_file_loc = pathlib.Path(save_folder, "nearest_cent.npy")
@@ -85,6 +81,12 @@ def assign_and_sort_clusters(
             "dist_to_cent": dist_to_cent,
         }
     )
+    # dist_df = pd.DataFrame(
+    #     {
+    #         "nearest_cent": nearest_cent,
+    #         "dist_to_cent": dist_to_cent,
+    #     }
+    # )
 
     sorted_clusters = rank_within_cluster(
         data,
@@ -96,8 +98,8 @@ def assign_and_sort_clusters(
         cluster_ids,
         sorted_clusters_file_loc,
     )
-    logger.info(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
-    logger.info("DONE!")
+    print(f"Time for ranking: {(time.time() - start_time) / 60:.2f} mins")
+    print("DONE!")
 
     return sorted_clusters
 
@@ -170,11 +172,12 @@ def rank_within_cluster(
         elif sim_metric == "l2":  # -- get l2 distance from "dist_to_cent" array
             cluster_dists_to_cent = list(cluster_df["dist_to_cent"])
 
+
         cluster_label = np.full((len(cluster_df)), cluster_c).tolist()
         example_paths = list(cluster_df["paths_list"])
         sort_descending = keep_hard
         cluster_sorted = sorted(
-            zip(example_paths, cluster_items, cluster_dists_to_cent, cluster_label),
+            zip(example_paths,cluster_items, cluster_dists_to_cent, cluster_label),
             key=lambda x: x[2],
             reverse=sort_descending,
         )  # -- sort_descending = True for descending sort
@@ -210,13 +213,6 @@ class SLURMJob(submitit.helpers.Checkpointable):
         torch.cuda.manual_seed(seed)
 
     def _encode_shard(self, args):
-        # Configure logger
-        logger = get_logger(
-            file_name=f"{args.save_folder}/clustering-logs.log",
-            level=logging.INFO,
-            stdout=True,
-        )
-        args.logger = logger
 
         data = np.memmap(
             args.emb_memory_loc,
@@ -240,7 +236,6 @@ class SLURMJob(submitit.helpers.Checkpointable):
             args.save_folder,
             args.sorted_clusters_file_loc,
             args.cluster_ids_for_job,
-            args.logger,
         )
 
         return

@@ -1,53 +1,60 @@
-# Copyright (c) Meta Platforms, Inc. and affiliates.
-# All rights reserved.
-
-# This source code is licensed under the license found in the
-# LICENSE file in the root directory of this source tree.
 
 import os
-from tqdm import tqdm
-import pickle
 import numpy as np
+import pickle
+from multiprocessing import Pool
+from tqdm import tqdm
+import time
+import json
 from constants import IMAGE_NAME_INDEX
 
+def process_cluster(cluster_id, sorted_clusters_path, semdedup_save_folder, eps, retreive_kept_samples):
+    cluster_i = np.load(
+        os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
+    )
+    with open(f"{semdedup_save_folder}/cluster_{cluster_id}.pkl", "rb") as file:
+        semdedup_pruning_tables = pickle.load(file)
+
+    images_to_keep_or_remove = semdedup_pruning_tables[f"eps={eps}"][
+        semdedup_pruning_tables[f"eps={eps}"] == (not retreive_kept_samples)
+    ].index.to_numpy()
+    if "indices" in semdedup_pruning_tables.columns:
+        cluster_i = cluster_i[semdedup_pruning_tables["indices"]]
+
+    dedup_cluster = cluster_i[images_to_keep_or_remove]
+    return dedup_cluster[:, IMAGE_NAME_INDEX]
 
 def extract_pruned_data(
-    sorted_clusters_path,
-    semdedup_pruning_tables_path,
-    eps,
-    num_clusters,
-    output_txt_path,
-    retreive_kept_samples=True,
+    dataset_size:int,
+    sorted_clusters_path:str,
+    semdedup_save_folder:str,
+    eps_list:list,
+    num_clusters:int,
+    output_npy_path:str,
+    retreive_kept_samples:bool = True,
+    num_processes:int = 4
 ):
+    start_time = time.time()
+    retained_data_ratios = {}  # 用于保存每个eps的保留数据比例
+    for eps in eps_list:
+        print(f"now start to process eps {eps}")
 
-    ## -- list of paths to the examples we want to keep/remove.
-    example_paths = []
+        with Pool(num_processes) as p:
+            results = list(tqdm(p.starmap(process_cluster, [(cluster_id, sorted_clusters_path, semdedup_save_folder, eps, retreive_kept_samples) for cluster_id in range(num_clusters)]), total=num_clusters))
+        
+        example_data = set(np.concatenate(results))
+        np.save(output_npy_path+f"/keep_data_{eps}.npy", list(example_data))
 
-    for cluster_id in tqdm(range(0, num_clusters)):
+        retained_ratio = len(example_data) * 100 / dataset_size
+        retained_data_ratios[eps] = retained_ratio
+        print(f"DONE saving {len(example_data)} data entries, Remaining Data {retained_ratio}%")
 
-        cluster_i = np.load(
-            os.path.join(sorted_clusters_path, f"cluster_{cluster_id}.npy")
-        )
-        with open(
-            f"{semdedup_pruning_tables_path}/cluster_{cluster_id}.pkl", "rb"
-        ) as file:
-            semdedup_pruning_tables = pickle.load(file)
+    # 保存保留数据比例
+    with open(output_npy_path+"/retained_data_ratios.json", "w") as file:
+        json.dump(retained_data_ratios, file)
 
-        ## -- See which examples to keep/remove from this cluster.
-        ## -- Use retreive_kept_samples=True when kept dataset size <= 50%. This will return a smaller output text file,
-        ## -- semdedup_pruning_tables contain True values for the examples to be removed.
-        images_to_keep_or_remove = semdedup_pruning_tables[f"eps={eps}"][
-            semdedup_pruning_tables[f"eps={eps}"] == (not retreive_kept_samples)
-        ].index.to_numpy()
-        if "indices" in semdedup_pruning_tables.columns:
-            cluster_i = cluster_i[semdedup_pruning_tables["indices"]]
-        ## -- retrieve only the examples we want and add to the list.
-        dedup_cluster = cluster_i[images_to_keep_or_remove]
-        example_paths += dedup_cluster[:, IMAGE_NAME_INDEX].astype("<U32").tolist()
-
-    with open(output_txt_path, "w") as fp:
-        fp.write("\n".join(example_paths))
-
-    print(f"DONE saving {len(example_paths)} image paths")
-
+    end_time = time.time()
+    total_time = end_time - start_time
+    print(f"Total processing time: {total_time:.2f} seconds")
     return
+

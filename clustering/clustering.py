@@ -8,7 +8,6 @@ import faiss
 import torch
 import time
 import numpy as np
-import logging
 import os
 import pickle
 import argparse
@@ -17,7 +16,6 @@ import pprint
 import submitit
 import pathlib
 from typing import Union, Optional
-from utils import get_logger
 
 
 def faiss_index_to_gpu(cpu_index):
@@ -46,7 +44,6 @@ def compute_centroids(
     seed: int = 1234,
     Kmeans_with_cos_dist: bool = False,
     save_folder: str = "",
-    logger: logging.Logger = None,
     verbose: bool = True,
 ):
 
@@ -64,17 +61,16 @@ def compute_centroids(
         seed: The random seed to use for reproducibility.
         Kmeans_with_cos_dist: (boolean) when True, run spherical kmeans.
         save_folder: path to save/load output files.
-        logger: A logger instance to use for logging.
 
     returns:
         faiss k-means object
     """
     os.makedirs(save_folder, exist_ok=True)
     # -- Compute Kmeans centroids
-    logger.info(
+    print(
         f"Running Kmeans clustering using faiss on dataset of shape {data.shape} ...."
     )
-    logger.info(f"Kmeans parameters: {locals()} ....")
+    print(f"Kmeans parameters: {locals()} ....")
     # pprint.pprint(locals(), width=1, indent=4)
 
     d = data.shape[1]
@@ -83,7 +79,7 @@ def compute_centroids(
 
     device = "cuda" if use_gpu else "cpu"
 
-    logger.info(f"Clustering on {device} ....")
+    print(f"Clustering on {device} ....")
 
     spherical = (
         Kmeans_with_cos_dist  # -- spherical=True when Kmeans_with_cos_dist is True
@@ -106,22 +102,22 @@ def compute_centroids(
     if not os.path.exists(kmeans_obj_file_loc):
         start_time = time.time()
         kmeans.train(data)
-        logger.info(f"Time for clustering (mins): {(time.time()-start_time)/(60):.2f}")
+        print(f"Time for clustering (mins): {(time.time()-start_time)/(60):.2f}")
 
         # -- Move kmeans index to cpu to save it
-        kmeans_index = faiss.index_gpu_to_cpu(kmeans.index)
-        logger.info(f"faiss kmeans index to store: {type(kmeans_index)}")
+        kmeans_index = kmeans.index
+        print(f"faiss kmeans index to store: {type(kmeans_index)}")
         ## -- Save faiss kmeans index object as pickle file
         with open(kmeans_obj_file_loc, "wb") as file:
             pickle.dump(kmeans_index, file)
         ## -- save faiss kmeans centroids as npy file
         np.save(pathlib.Path(save_folder, "kmeans_centroids.npy"), kmeans.centroids)
 
-        logger.info(f"Saved!")
+        print(f"Saved!")
 
     else:
         # -- Else, load stored kmeans object
-        logger.info(
+        print(
             f"Loading faiss Kmeans index pickle file from {kmeans_obj_file_loc}"
         )
         with open(kmeans_obj_file_loc, "rb") as file:
@@ -136,7 +132,7 @@ def compute_centroids(
     start_time = time.time()
     dist_to_cent, nearest_cent = kmeans.index.search(data, 1)
     dist_to_cent, nearest_cent = dist_to_cent.squeeze(1), nearest_cent.squeeze(1)
-    logger.info(
+    print(
         f"Time for finding nearest centroid for each data point (mins): {(time.time()-start_time)/(60):.2f}"
     )
 
@@ -150,14 +146,6 @@ def compute_centroids(
 
 
 def main(args):
-    # Initialize logger
-    log_file = os.path.join(args.save_folder, "compute_centroids.log")
-    logger = get_logger(
-        file_name=log_file,
-        level=logging.INFO,
-        stdout=True,
-    )
-
     # Load configuration file for clustering
     confg_file = args.confg_file
 
@@ -194,7 +182,6 @@ def main(args):
         seed,
         Kmeans_with_cos_dist,
         save_folder,
-        logger,
         True,
     )
 

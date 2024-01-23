@@ -1,13 +1,41 @@
+# sql opt-125M
+# semdedup_save_folder: "/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/sql/opt-125M"
+# sorted_clusters_path: "/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/sql/opt-125M"
+# # -- number of clusters
+# num_clusters: 500
+# emb_memory_loc: "/home/guochuanzhe/data-process/SemDeDup/memory/embedding/sql/opt-125M/emb_memory_loc.npy"
+# # -- dataset size
+# dataset_size: 973469
+# # -- embeddings size
+# emb_size: 768
+# # -- which example to keep from each group of duplicates
+# which_to_keep: "hard"
+# # -- seed
+# seed: 1234
+# # -- largest cluster size the memory is large enough to process. If the cluster size is larger than it, we will devide the cluster into small clusters and process each one separately.
+# largest_cluster_size_to_process: 10000000
 
-save_folder: "<your path>"
-sorted_clusters_path: "<your path>/sorted_clusters"
+# sim_metric: 'cosine' # choose form ['cosine', 'l2']
+# keep_hard: True # True for hard examples
+# kmeans_with_cos_dist: True # True for using cosine similarity for kmeans clustering
+# kmeans_save_folder: "/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/sql/opt-125M"
+# # path_str_dtype: int
+# niter: 100
+# output_npy_path: "/home/guochuanzhe/data-process/SemDeDup/memory/output_path/sql/opt-125M"
+# eps_list: [0.01,0.02,0.03,0.05,0.1,0.2,0.25]
+
+
+# python
+# basic config
+model_name: "opt-125M"
+dataset_name: "python"
+split: "train"
 # -- number of clusters
-num_clusters: 50000
-embs_memory_loc: "<your path>.npy"
+num_clusters: 10000
 # -- dataset size
-dataset_size: <dataset_size>
+dataset_size: 12840915
 # -- embeddings size
-emd_size: 512
+emb_size: 768
 # -- which example to keep from each group of duplicates
 which_to_keep: "hard"
 # -- seed
@@ -15,3 +43,9 @@ seed: 1234
 # -- largest cluster size the memory is large enough to process. If the cluster size is larger than it, we will devide the cluster into small clusters and process each one separately.
 largest_cluster_size_to_process: 10000000
 
+sim_metric: 'cosine' # choose form ['cosine', 'l2']
+keep_hard: True # True for hard examples
+kmeans_with_cos_dist: True # True for using cosine similarity for kmeans clustering
+niter: 100
+eps_list: [0.01,0.02,0.03,0.05,0.075,0.1,0.125,0.135,0.14,0.15,0.175,0.2,0.25]
+save_eps_list: [0.135,0.14]
