@@ -1,1 +1,0 @@
-torchrun --nnodes=2 --nproc_per_node=8 --rdzv_id=100 --rdzv_backend=c10d --rdzv_endpoint=localhost:29400 compute_embedding_test.py
