@@ -1,6 +1,9 @@
 LAION_loader
 **/__pycache__
 data/*
+!data/.gitkeep
 logs/*
+!logs/.gitkeep
 memory/*
+!memory/.gitkeep
 scripts/test/
