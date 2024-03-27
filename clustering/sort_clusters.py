@@ -152,9 +152,9 @@ def rank_within_cluster(
 
     sorted_clusters_list = []
     for cluster_c in tqdm(cluster_ids):
-        if os.path.exists(f"{sorted_clusters_file_loc}/cluster_{cluster_c}.npy"):
-            print(f"Cluster {cluster_c} exits, skipping....")
-            continue
+        # if os.path.exists(f"{sorted_clusters_file_loc}/cluster_{cluster_c}.npy"):
+        #     print(f"Cluster {cluster_c} exits, skipping....")
+        #     continue
 
         cluster_df = dist_df.loc[dist_df["nearest_cent"] == cluster_c]
 
@@ -181,7 +181,7 @@ def rank_within_cluster(
             key=lambda x: x[2],
             reverse=sort_descending,
         )  # -- sort_descending = True for descending sort
-
+        cluster_sorted.append([0,0,0,cluster_c])
         sorted_clusters_list.append(
             cluster_sorted
         )  # -- Descending dists. list of of list of tuples (example, dist). The ith list of tuples corresponds to cluster i

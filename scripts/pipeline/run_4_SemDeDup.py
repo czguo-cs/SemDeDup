@@ -52,13 +52,13 @@ class SemDeDup():
         model_name=params['model_name']
         dataset_name=params['dataset_name']
         split=params['split']
-
+        type=params['type']
         self.params = params
-        self.emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{model_name}/emb_memory_loc.npy"
+        self.emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
         self.dataset_size=params["dataset_size"]
         self.emb_size=params["emb_size"]
-        self.sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{model_name}"
-        self.semdedup_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{model_name}"
+        self.sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
+        self.semdedup_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{type}/{model_name}"
         self.device="cuda" if torch.cuda.is_available() else "cpu"  
         self.eps_list=params['eps_list']
         self.which_to_keep=params['which_to_keep']

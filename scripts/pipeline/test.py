@@ -152,85 +152,89 @@ def main():
     # rank = dist.get_rank()
     
     # print(f"Start running basic DDP example on rank {rank}.")
-    # emb_memory_loc = "/home/guochuanzhe/data-process/SemDeDup/memory/embedding/sql/llama-350M/emb_memory_loc.npy"
+    emb_memory_loc = "/home/guochuanzhe/data-process/SemDeDup/scripts/test/emb_memory_loc.npy"
     # emb_memory_loc = "/home/guochuanzhe/data-process/SemDeDup/memory/embedding/python/llama-350M/emb_memory_loc.npy"
     path_data = "/home/guochuanzhe/Megatron-LM-gjn/data/starcoder/chatml_data/starcoder-sql-dev.jsonl"
-    dataset=JsonlDataset(path_data)
-    dataset_size = len(dataset)                                                         # starcoder
+    # dataset=JsonlDataset(path_data)
+    dataset_size = 10                                                        # starcoder
     emb_size = 768
     # if dist.get_rank()==0:
-    #     emd_memmap = np.memmap(emb_memory_loc, dtype='float32', mode='w+', shape=(dataset_size, emb_size))
+    emd_memmap = np.memmap(emb_memory_loc, dtype='float32', mode='w+', shape=(dataset_size, emb_size))
     # else:
     #     emd_memmap = np.memmap(emb_memory_loc, dtype='float32', mode='r+', shape=(dataset_size, emb_size))
-
-    model_path="/home/guochuanzhe/.cache/huggingface/hub/models--facebook--opt-125m/snapshots/27dcfa74d334bc871f3234de431e71c6eeba5dd6"
+    for i in range(10):
+        emd_memmap[i]+=np.ones(768)
+        print(emd_memmap[i])
+    # model_path="/home/guochuanzhe/.cache/huggingface/hub/models--facebook--opt-125m/snapshots/27dcfa74d334bc871f3234de431e71c6eeba5dd6"
     # model_path="/home/guochuanzhe/model/llama/pre_train/llama-350M/llama-350M-MONO/325/iter0005812"
     # 加载OPT-125模型及其分词器
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_path,
-        padding_side="right",
-        use_fast=True, 
-    )
-    if tokenizer.pad_token is None:
-        tokenizer.add_special_tokens(special_tokens_dict=dict(pad_token="</s>"))
-    model = AutoModel.from_pretrained(
-        model_path,
-        torch_dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2"
-    )
+    # tokenizer = AutoTokenizer.from_pretrained(
+    #     model_path,
+    #     padding_side="right",
+    #     use_fast=True, 
+    # )
+    # if tokenizer.pad_token is None:
+    #     tokenizer.add_special_tokens(special_tokens_dict=dict(pad_token="</s>"))
+    # model = AutoModel.from_pretrained(
+    #     model_path,
+    #     torch_dtype=torch.bfloat16,
+    #     attn_implementation="flash_attention_2"
+    # )
 
-    # 定义collate_fn
-    def collate_fn(examples):
-        texts = [ex[0] for ex in examples]
-        index_batch = [ex[1] for ex in examples]
-        data_batch = tokenizer(texts, return_tensors="pt",padding=True,truncation=True, max_length=2048)
-        return data_batch,index_batch
+    # # 定义collate_fn
+    # def collate_fn(examples):
+    #     texts = [ex[0] for ex in examples]
+    #     index_batch = [ex[1] for ex in examples]
+    #     data_batch = tokenizer(texts, return_tensors="pt",padding=True,truncation=True, max_length=2048)
+    #     return data_batch,index_batch
         
 
-    # 加载Dataloader
-    # sampler=DistributedSampler(dataset)
+    # # 加载Dataloader
+    # # sampler=DistributedSampler(dataset)
 
-    dataloader = DataLoader(
-        dataset=dataset,
-        batch_size=2,
-        shuffle=False,
-        # sampler=sampler,
-        collate_fn=collate_fn,
-        num_workers=4,
-    )
-    # get_nl_embeddings(model, dataloader, emd_memmap, paths_memmap)
-    # create model and move it to GPU with id rank
-    # "cuda" = rank % torch.cuda.device_count()
-    # 加载OPT-125模型及其分词器
-    model = model.to("cuda")
-    # model = DDP(model, "cuda"s=["cuda"])
-    model.eval()
+    # dataloader = DataLoader(
+    #     dataset=dataset,
+    #     batch_size=2,
+    #     shuffle=False,
+    #     # sampler=sampler,
+    #     collate_fn=collate_fn,
+    #     num_workers=4,
+    # )
+    # # get_nl_embeddings(model, dataloader, emd_memmap, paths_memmap)
+    # # create model and move it to GPU with id rank
+    # # "cuda" = rank % torch.cuda.device_count()
+    # # 加载OPT-125模型及其分词器
+    # model = model.to("cuda")
+    # # model = DDP(model, "cuda"s=["cuda"])
+    # model.eval()
     # print(f"Get encoding on rank {rank}...")
     count=0
-    with torch.no_grad():
-        for data_batch, index_batch in tqdm(dataloader):
-            # 获取隐藏层状态
-            input_ids = data_batch['input_ids'].to("cuda")
-            attention_mask = data_batch['attention_mask'].to("cuda")
+    # with torch.no_grad():
+    #     for data_batch, index_batch in tqdm(dataloader):
+    #         # 获取隐藏层状态
+    #         input_ids = data_batch['input_ids'].to("cuda")
+    #         attention_mask = data_batch['attention_mask'].to("cuda")
 
-            outputs = model(input_ids, attention_mask=attention_mask, output_hidden_states=True)
-            last_hidden_state = outputs.last_hidden_state
+    #         outputs = model(input_ids, attention_mask=attention_mask, output_hidden_states=True)
+    #         last_hidden_state = outputs.last_hidden_state
 
-            # 找到每个样本的最后一个有效token的位置
-            last_token_indices = (attention_mask.sum(dim=1) - 1).unsqueeze(1).unsqueeze(2).expand(-1, -1, last_hidden_state.size(-1))
-            last_token_state = last_hidden_state.gather(1, last_token_indices).squeeze(1)
+    #         # 找到每个样本的最后一个有效token的位置
+    #         last_token_indices = (attention_mask.sum(dim=1) - 1).unsqueeze(1).unsqueeze(2).expand(-1, -1, last_hidden_state.size(-1))
+    #         last_token_state = last_hidden_state.gather(1, last_token_indices).squeeze(1)
 
-            # 对 last_token_state 进行处理，例如归一化
-            normalized_last_layer_states = normalize(last_token_state, dim=1)
+    #         # 对 last_token_state 进行处理，例如归一化
+    #         normalized_last_layer_states = normalize(last_token_state, dim=1)
 
-            # 存储embedding
-            normalized_last_layer_states = normalized_last_layer_states.to(dtype=torch.float32).cpu().numpy()
-            count += 1
-            if count==1:
-                print(input_ids)
-                print(last_token_state)
-                print(last_hidden_state[:,-3,:])
-                break
+    #         # 存储embedding
+    #         normalized_last_layer_states = normalized_last_layer_states.to(dtype=torch.float32).cpu().numpy()
+    #         count += 1
+    #         if count==1:
+    #             # print(input_ids)
+    #             # print(last_token_state)
+    #             # print(last_hidden_state[:,-3,:])
+    #             print(emd_memmap[count-1])
+    #             break
+
             # for i in range(len(index_batch)):
             #     emd_memmap[index_batch[i]] = normalized_last_layer_states[i]
                 # print(normalized_last_layer_states)

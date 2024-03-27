@@ -60,14 +60,15 @@ def main(
     model_name:str = "opt-125M",
     dataset_name:str = "python",
     split:str = "train",
-    emb_size:int = 768,  
+    type:str = "front",
+    emb_size:int = 768, 
 ):
     # 并行初始化
     dist.init_process_group("nccl")
     rank = dist.get_rank()
     # 基础元素初始化
-    print(f"Start running model {model_name} for dataset {dataset_name}-{split} on rank {rank}.")
-    emb_memory_loc = f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/merge/{model_name}/emb_memory_loc.npy"
+    print(f"Start running model {model_name} for dataset {dataset_name}-{split} in the way of {type} on rank {rank}.")
+    emb_memory_loc = f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
     path_data = f"/home/guochuanzhe/Megatron-LM-gjn/data/starcoder/chatml_data/starcoder-{dataset_name}-{split}.jsonl"
     dataset=JsonlDataset(path_data)
     dataset_size = len(dataset)                                                         # starcoder
@@ -87,6 +88,7 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(
         model_path,
         padding_side="right",
+        truncation=True,
         use_fast=True,
     )
     if tokenizer.pad_token is None:
@@ -94,8 +96,11 @@ def main(
     # 与原来相比，opt-125M由f16改为bf16
     if model_name == "opt-125M":
         torch_dtype=torch.float16
+        print("model load in torch.float16")
     else:
         torch_dtype=torch.bfloat16
+        print("model load in torch.bfloat16")
+    
     model = AutoModel.from_pretrained(
         model_path,
         torch_dtype=torch_dtype,
@@ -103,37 +108,66 @@ def main(
     )
     print(f"model and tokenizer loaded successfully on rank {rank}")
 
-    # 定义collate_fn
+    # # 定义collate_fn
     # def collate_fn(examples):
     #     texts = [ex[0] for ex in examples]
     #     index_batch = [ex[1] for ex in examples]
     #     data_batch = tokenizer(texts, return_tensors="pt",padding=True,truncation=True, max_length=2048)
     #     return data_batch,index_batch
-    
-
-    def collate_fn(examples, max_length=2048):
-        texts = [ex[0] for ex in examples]
+    # 2 保留末尾的2048（实现方式一）
+    def collate_fn(examples):
+        max_length = 2048  # 定义最大长度
         index_batch = [ex[1] for ex in examples]
-        split_texts = []
-        split_index_batch = []
-        for text, index in zip(texts, index_batch):
-            # 分割文本
-            for i in range(0, len(text), max_length):
-                split_texts.append(text[i:i + max_length])
-                split_index_batch.append(index)
-        data_batch = tokenizer(split_texts, return_tensors="pt", padding=True, truncation=True, max_length=max_length)
-        return data_batch, split_index_batch    
+
+        # 对所有文本进行 tokenization
+        tokenized_texts = [tokenizer(ex[0],return_attention_mask=False) for ex in examples]
+
+        # 对于超过 max_length 的文本，只保留最后 max_length 个 token
+        # 对于不足 max_length 的文本，保留整个 token 序列
+        truncated_input_ids = [text['input_ids'][-max_length:] if len(text['input_ids']) > max_length else text['input_ids'] for text in tokenized_texts]
+
+        # 使用 tokenizer 的 padding 方法来统一序列长度
+        data_batch = tokenizer.pad(
+            {"input_ids": truncated_input_ids},
+            padding=True,
+            max_length=max_length,
+            return_tensors="pt"
+        )
+        return data_batch, index_batch
+
+    # 3. 求平均
+    # def collate_fn(examples):
+    #     max_length = 2048  # 定义最大长度
+    #     segmented_texts = []
+    #     index_batch = []
+
+    #     for ex in examples:
+    #         text, idx = ex
+    #         # 对文本进行分段处理
+    #         for i in range(0, len(text), max_length):
+    #             segmented_texts.append(text[i:i + max_length])
+    #             index_batch.append(idx)
+
+    #     # 使用tokenizer进行编码
+    #     data_batch = tokenizer(
+    #         segmented_texts, 
+    #         return_tensors="pt",
+    #         padding=True,
+    #         truncation=True,
+    #         max_length=max_length
+    #     )
+    #     return data_batch, index_batch
 
     # 加载Dataloader
     sampler=DistributedSampler(dataset)
 
     dataloader = DataLoader(
         dataset=dataset,
-        batch_size=4,
+        batch_size=16,
         shuffle=False,
         sampler=sampler,
         collate_fn=collate_fn,
-        num_workers=1,
+        num_workers=2,
     )
     # create model and move it to GPU with id rank
     device_id = rank % torch.cuda.device_count()

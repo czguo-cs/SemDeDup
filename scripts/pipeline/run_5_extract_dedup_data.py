@@ -13,10 +13,11 @@ with open(confg_file, 'r') as y_file:
 model_name=params['model_name']
 dataset_name=params['dataset_name']
 split=params['split']
+type=params['type']
 
-sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{model_name}"
-semdedup_save_folder = f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{model_name}"
-output_npy_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/output_path/{dataset_name}/{model_name}"
+sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
+semdedup_save_folder = f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{type}/{model_name}"
+output_npy_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/output_path/{dataset_name}/{type}/{model_name}"
 
 extract_pruned_data(
     dataset_size = params['dataset_size'],

@@ -79,7 +79,7 @@ def process_eps(eps, dataset_name, split, npy_folder_path, json_file_path, json_
         json_data = file.readlines()
 
     # 过滤 JSON 数据
-    json_output_path = f"{json_output_folder_path}/starcoder-{dataset_name}-{split}-dedup_{eps}_{ratio_suffix}.jsonl"
+    json_output_path = f"{json_output_folder_path}/starcoder-{dataset_name}-{split}-2048-dedup_{eps}_{ratio_suffix}.jsonl"
     with open(json_output_path, 'w') as file:
         for line_number, line in enumerate(json_data):
             if line_number in example_data:
@@ -107,9 +107,11 @@ if __name__=='__main__':
     model_name=params['model_name']
     dataset_name=params['dataset_name']
     split=params['split']
-    json_file_path = f"/home/guochuanzhe/Megatron-LM-gjn/data/starcoder/chatml_data/starcoder-{dataset_name}-{split}.jsonl"
-    json_output_folder_path=f"/home/guochuanzhe/data-process/SemDeDup/data/{dataset_name}/pruned-starcoder-{dataset_name}-{split}/{model_name}"
-    output_npy_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/output_path/{dataset_name}/{model_name}"
+    type=params['type']
+    json_file_path=f"/home/guochuanzhe/data-process/data_reorganization/data/{dataset_name}/starcoder-{dataset_name}-{split}-2048/llama-350M/starcoder-{dataset_name}-{split}-2048.jsonl"
+    # json_file_path = f"/home/guochuanzhe/Megatron-LM-gjn/data/starcoder/chatml_data/starcoder-{dataset_name}-{split}.jsonl"
+    json_output_folder_path=f"/home/guochuanzhe/data-process/SemDeDup/data/{dataset_name}/pruned-starcoder-{dataset_name}-{split}/{type}/{model_name}"
+    output_npy_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/output_path/{dataset_name}/{type}/{model_name}"
     generate_filtered_json(
         dataset_name=dataset_name,
         split=split,

@@ -1,6 +1,6 @@
 LAION_loader
 **/__pycache__
-data
-logs/
-memory
-
+data/*
+logs/*
+memory/*
+scripts/test/

@@ -19,9 +19,9 @@ random.seed(SEED)
 model_name=params['model_name']
 dataset_name=params['dataset_name']
 split=params['split']
-
-kmeans_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/{dataset_name}/{model_name}"
-emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{model_name}/emb_memory_loc.npy"
+type=params['type']
+kmeans_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/{dataset_name}/{type}/{model_name}"
+emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
 
 
 # 获取embedding_memory

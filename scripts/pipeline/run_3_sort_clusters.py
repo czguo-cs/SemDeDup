@@ -19,10 +19,11 @@ random.seed(params['seed'])
 model_name=params['model_name']
 dataset_name=params['dataset_name']
 split=params['split']
+type=params['type']
 
-sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{model_name}"
-kmeans_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/{dataset_name}/{model_name}"
-emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{model_name}/emb_memory_loc.npy"
+sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
+kmeans_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/{dataset_name}/{type}/{model_name}"
+emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
 
 # 获取embedding_memory
 dataset_size = params['dataset_size'] 
