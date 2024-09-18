@@ -1,11 +1,31 @@
+# SemDeDup
+
+## 环境配置
+参考https://github.com/facebookresearch/SemDeDup
+
+## 执行
+执行文件为./scripts/pipeline/run_2_3_4_5_6.sh
+
+步骤一为求embedding，已有embedding可省略此步骤，将embedding以.npy格式存储在./memory/embedding目录下
+
+## 需要修改的参数
+1. ./scripts/pipeline/run_2_3_4_5_6.sh
+```
+# 以下参数需要修改，主要用于目录及文件命名命名，可自主修改
+# 与../../semdedup_configs.yaml保持一致
+model_name=llama-350M
+dataset_name=code_sft
+split=train
+type=sft
+```
+
+2. ../../semdedup_configs.yaml
+```
 # 用于路径或文件命名的参数
 model_name: "llama-350M"
 dataset_name: "code_sft"
 split: "train"
 type: "sft"
-
-
-
 # -- number of clusters
 num_clusters: 100
 # 待处理数据集的大小
@@ -26,5 +46,16 @@ kmeans_with_cos_dist: True # True for using cosine similarity for kmeans cluster
 niter: 150
 # 阈值列表
 eps_list: [0.01,0.015,0.02,0.025,0.03,0.035,0.04,0.045,0.05,0.055,0.06,0.065,0.07]
-# 
-save_eps_list: [0.01,0.015,0.02,0.025,0.03,0.035,0.04,0.045,0.05,0.055,0.06,0.065,0.07]
+# 选择合适的阈值保存结果
+save_eps_list: [0.01]
+```
+
+
+3. ../../scripts/pipeline/run_6_generate_dedup_json.py
+```
+# 原始数据路径
+json_file_path = "your/path/origin_data.jsonl"
+```
+
+## 注意事项
+1. 路径命名有我原本的一套规则，可以自由修改方便使用

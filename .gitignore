@@ -6,4 +6,4 @@ logs/*
 !logs/.gitkeep
 memory/*
 !memory/.gitkeep
-scripts/test/
+scripts/test/git status

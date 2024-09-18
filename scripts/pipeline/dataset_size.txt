@@ -1,2 +1,0 @@
-the size of sql-train dataset is 973469 
-the size of python-train dataset is 12840915 

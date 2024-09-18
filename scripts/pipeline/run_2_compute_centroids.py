@@ -2,11 +2,11 @@ import yaml
 import random
 import numpy as np
 import sys
-sys.path.append('/home/guochuanzhe/data-process/SemDeDup/clustering')
+sys.path.append('../../clustering')
 from clustering import compute_centroids
 
 
-confg_file = "/home/guochuanzhe/data-process/SemDeDup/semdedup_configs.yaml"
+confg_file = "../../semdedup_configs.yaml"
 ## -- Load kmeans clustering parameters from configs file
 with open(confg_file, 'r') as y_file:
     params = yaml.load(y_file, Loader=yaml.FullLoader)
@@ -20,8 +20,8 @@ model_name=params['model_name']
 dataset_name=params['dataset_name']
 split=params['split']
 type=params['type']
-kmeans_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/kmeans_save_folder/{dataset_name}/{type}/{model_name}"
-emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
+kmeans_save_folder=f"../../memory/kmeans_save_folder/{dataset_name}/{type}/{model_name}"
+emb_memory_loc=f"../../memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
 
 
 # 获取embedding_memory

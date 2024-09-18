@@ -12,10 +12,11 @@ import argparse
 import sys
 import submitit
 from tqdm import tqdm
-sys.path.append('/home/guochuanzhe/data-process/SemDeDup')
+sys.path.append('../..')
 # 假设 constants 模块已经存在
 from constants import DIST_METRIC_INDEX
-
+from multiprocessing import Process, cpu_count
+import multiprocessing
 # SemDeDup类的定义和其他函数（已经在之前的代码中提供）
 
 def init_memmap_embs(
@@ -54,11 +55,11 @@ class SemDeDup():
         split=params['split']
         type=params['type']
         self.params = params
-        self.emb_memory_loc=f"/home/guochuanzhe/data-process/SemDeDup/memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
+        self.emb_memory_loc=f"../../memory/embedding/{dataset_name}/{type}/{model_name}/emb_memory_loc.npy"
         self.dataset_size=params["dataset_size"]
         self.emb_size=params["emb_size"]
-        self.sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
-        self.semdedup_save_folder=f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{type}/{model_name}"
+        self.sorted_clusters_path = f"../../memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
+        self.semdedup_save_folder=f"../../memory/semdedup/{dataset_name}/{type}/{model_name}"
         self.device="cuda" if torch.cuda.is_available() else "cpu"  
         self.eps_list=params['eps_list']
         self.which_to_keep=params['which_to_keep']
@@ -81,16 +82,18 @@ class SemDeDup():
         image_urls = cluster[:, 0]
 
         ## -- make sure all the paths are unique this ensure that the duplicates are really stored many time times on memory
-        assert not self._contains_duplicates(image_urls)
+        # assert not self._contains_duplicates(image_urls)
 
         ## -- We need upper tringular matrix because (1)we don't need to look at self sim (always=1) (2)we need the compinations not permutations
         triu_sim_mat = torch.triu(pair_w_sim_matrix, diagonal=1)
 
         ## -- if the max sim between one example and any other example is > 1-eps, remove this example
-        M = torch.max(triu_sim_mat, dim=0)[0].cpu()
+        # M = torch.max(triu_sim_mat, dim=0)[0].cpu()
+        M, indices = torch.max(triu_sim_mat, dim=0)
+        M = M.cpu()
+        indices = indices.cpu() 
         print(f"Step time: {time.time()-st}(s)")
-
-        return M
+        return M,indices
 
     def _process_shard(self, start_cluster: int, end_cluster: int):
         # print("SemDeDup params: ", self.params)
@@ -154,7 +157,7 @@ class SemDeDup():
             cluster_reps = embs[cluster_ids]
             cluster_reps = torch.tensor(cluster_reps)
 
-            M = self.semdedup(cluster_i, cluster_reps, self.device)
+            M,indices = self.semdedup(cluster_i, cluster_reps, self.device)
 
             points_to_remove_df = pd.DataFrame()
             points_to_remove_df["indices"] = clutser_items_indices
@@ -162,7 +165,11 @@ class SemDeDup():
             for eps in self.eps_list:
                 ## -- 5) We need to remove a point from the dataset when its pairwise similarity to other point is > 1-ebs
                 eps_points_to_remove = M > 1 - eps
+
                 points_to_remove_df[f"eps={eps}"] = eps_points_to_remove
+                points_to_remove_df[f"eps={eps}_teammates"] = indices
+                points_to_remove_df[f"eps={eps}_similarity"] = M
+
 
             if self.semdedup_save_folder != "":
                 ## --save df
@@ -178,15 +185,34 @@ class SemDeDup():
         # print(count)
         return
         
+    def process_shards_multiprocess(self, num_clusters, num_processes=None):
+        if num_processes is None:
+            num_processes = cpu_count()  # 使用 CPU 核心数量作为默认进程数
+
+        clusters_per_process = num_clusters // num_processes
+        processes = []
+
+        for i in range(num_processes):
+            start_cluster = i * clusters_per_process
+            # 确保最后一个进程处理剩下的所有簇
+            end_cluster = (i + 1) * clusters_per_process if i != num_processes - 1 else num_clusters
+            # 执行进程
+            process = Process(target=self._process_shard, args=(start_cluster, end_cluster))
+            processes.append(process)
+            process.start()
+
+        for process in processes:
+            process.join()  # 等待所有进程完成
 
 def main():
     # 读取配置文件
-    params_file = "/home/guochuanzhe/data-process/SemDeDup/semdedup_configs.yaml"  # 配置文件路径
+    params_file = "../../semdedup_configs.yaml"  # 配置文件路径
     with open(params_file, "r") as file:
         params=yaml.load(file,Loader=yaml.FullLoader)
     # SemDeDup
     semdedup = SemDeDup(params)
-    semdedup._process_shard(0, params["num_clusters"])
+    # 使用多进程处理
+    semdedup.process_shards_multiprocess(params["num_clusters"], num_processes=32)  # 可以根据需要调整进程数量
 
 if __name__ == "__main__":
     main()

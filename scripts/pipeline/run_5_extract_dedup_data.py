@@ -1,11 +1,11 @@
 import sys
 import yaml
 import argparse
-sys.path.append("/home/guochuanzhe/data-process/SemDeDup")
+sys.path.append("../..")
 from extract_dedup_data import extract_pruned_data
 
 
-confg_file = "/home/guochuanzhe/data-process/SemDeDup/semdedup_configs.yaml"
+confg_file = "../../semdedup_configs.yaml"
 ## -- Load kmeans clustering parameters from configs file
 with open(confg_file, 'r') as y_file:
     params = yaml.load(y_file, Loader=yaml.FullLoader)
@@ -15,9 +15,9 @@ dataset_name=params['dataset_name']
 split=params['split']
 type=params['type']
 
-sorted_clusters_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
-semdedup_save_folder = f"/home/guochuanzhe/data-process/SemDeDup/memory/semdedup/{dataset_name}/{type}/{model_name}"
-output_npy_path = f"/home/guochuanzhe/data-process/SemDeDup/memory/output_path/{dataset_name}/{type}/{model_name}"
+sorted_clusters_path = f"../../memory/sorted_clusters_file/{dataset_name}/{type}/{model_name}"
+semdedup_save_folder = f"../../memory/semdedup/{dataset_name}/{type}/{model_name}"
+output_npy_path = f"../../memory/output_path/{dataset_name}/{type}/{model_name}"
 
 extract_pruned_data(
     dataset_size = params['dataset_size'],
